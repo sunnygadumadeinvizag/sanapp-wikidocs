@@ -4,13 +4,14 @@ import { createAppSession } from "@/lib/session";
 import { checkAppAccess, exchangeCode, fetchUserInfo, verifyIdToken } from "@/lib/sso";
 
 export async function GET(request: NextRequest) {
+const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || "";
   const url = request.nextUrl;
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
 
   const storedState = request.cookies.get("app1_oauth_state")?.value;
   if (!code || !state || state !== storedState) {
-    return NextResponse.redirect(new URL("/?error=state_mismatch", request.url));
+    return NextResponse.redirect(new URL(BASE_PATH + "/?error=state_mismatch", request.url));
   }
 
   try {
@@ -23,7 +24,7 @@ export async function GET(request: NextRequest) {
     // 2. Central application access — ask Main: is this user allowed in?
     const access = await checkAppAccess({ sub: user.sub, username: user.username });
     if (!access.allowed) {
-      const res = NextResponse.redirect(new URL("/access-denied", request.url));
+      const res = NextResponse.redirect(new URL(BASE_PATH + "/access-denied", request.url));
       res.cookies.delete("app1_oauth_state");
       return res;
     }
@@ -54,7 +55,7 @@ export async function GET(request: NextRequest) {
     const returnTo = request.cookies.get("app1_return_to")?.value ?? "/";
     const safeReturn =
       returnTo.startsWith("/") && !returnTo.startsWith("//") ? returnTo : "/";
-    const res = NextResponse.redirect(new URL(safeReturn, request.url));
+    const res = NextResponse.redirect(new URL(safeReturn.startsWith(BASE_PATH) ? safeReturn : BASE_PATH + safeReturn, request.url));
     res.cookies.delete("app1_return_to");
     res.cookies.set("app1_session", session, {
       httpOnly: true,
@@ -67,6 +68,6 @@ export async function GET(request: NextRequest) {
     return res;
   } catch (err) {
     console.error("App1 SSO callback failed:", err);
-    return NextResponse.redirect(new URL("/?error=signin_failed", request.url));
+    return NextResponse.redirect(new URL(BASE_PATH + "/?error=signin_failed", request.url));
   }
 }
