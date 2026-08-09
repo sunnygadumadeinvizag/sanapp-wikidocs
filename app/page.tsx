@@ -1,10 +1,13 @@
 import { cookies } from "next/headers";
-import { AppsMenu, PageShell, SessionGuard, UserMenu } from "iipe-common-ui";
+import { AppsMenu, getPlatformNav, PageShell, SessionGuard, UserMenu } from "iipe-common-ui";
 import { prisma } from "@/lib/prisma";
 import { verifyAppSession } from "@/lib/session";
 import { NoticesClient, type NoticeItem } from "./components/NoticesClient";
 
 export const dynamic = "force-dynamic";
+
+const SSO_BASE_URL = process.env.SSO_BASE_URL ?? "http://localhost:3000";
+const MAIN_BASE_URL = process.env.MAIN_BASE_URL ?? "http://localhost:3001";
 
 const WRITE_ROLES = ["ADMIN", "FACULTY", "STAFF"];
 const ROLE_LABELS: Record<string, string> = {
@@ -49,29 +52,28 @@ export default async function DashboardPage({
   return (
     <PageShell
       header={{
-        navItems: [
-          { label: "Dashboard", href: "/", active: true },
-          { label: "Notices", href: "/#notices" },
-        ],
+        navItems: getPlatformNav({ mainBaseUrl: MAIN_BASE_URL, ssoBaseUrl: SSO_BASE_URL, active: "home" }),
         right: (
           <>
-            <AppsMenu launcherHref={`${process.env.MAIN_BASE_URL ?? "http://localhost:3001"}/my-apps`} />
+            <AppsMenu launcherHref={`${MAIN_BASE_URL}/my-apps`} />
             <UserMenu
               name={me.name}
               email={me.email}
               role={ROLE_LABELS[me.role] ?? me.role}
               signOutHref="/api/logout"
             >
-              <a href="http://localhost:3000/account">SSO Profile</a>
-              <a href={`${process.env.MAIN_BASE_URL ?? "http://localhost:3001"}/my-apps`}>My apps (Main)</a>
+              <a href={`${SSO_BASE_URL}/account`}>My Account</a>
+              <a href={`${MAIN_BASE_URL}/my-apps`}>My Apps</a>
             </UserMenu>
           </>
         ),
       }}
       sidebarItems={[
-        { label: "Dashboard", href: "/", active: true },
-        { label: "SSO (identity)", href: "http://localhost:3000" },
-        { label: "Main (access)", href: "http://localhost:3001" },
+        { label: "Home", href: "/", active: true },
+        { label: "Notices", href: "/#notices" },
+        { label: "My Account", href: `${SSO_BASE_URL}/account` },
+        { label: "SSO (identity)", href: SSO_BASE_URL },
+        { label: "Main (access)", href: MAIN_BASE_URL },
       ]}
     >
       <SessionGuard channel="iipe-app1-session" />
