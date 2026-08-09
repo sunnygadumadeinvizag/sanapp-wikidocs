@@ -5,14 +5,22 @@ import { buildAuthorizeUrl } from "@/lib/sso";
 export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
+  // Strip the basePath (/sso, /main, /app1...) before matching routes so the
+  // proxy works identically when the app is served behind Apache with a prefix.
+  const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || "";
+  const p =
+    BASE_PATH && (pathname === BASE_PATH || pathname.startsWith(BASE_PATH + "/"))
+      ? pathname.slice(BASE_PATH.length) || "/"
+      : pathname;
+
   const isPublic =
-    pathname === "/auth/callback" ||
-    pathname === "/access-denied" ||
-    pathname === "/api" ||
-    pathname.startsWith("/api/") ||
-    pathname.startsWith("/_next") ||
-    pathname.startsWith("/favicon") ||
-    pathname.match(/\.(svg|png|jpg|jpeg|gif|webp|ico)$/);
+    p === "/auth/callback" ||
+    p === "/access-denied" ||
+    p === "/api" ||
+    p.startsWith("/api/") ||
+    p.startsWith("/_next") ||
+    p.startsWith("/favicon") ||
+    p.match(/\.(svg|png|jpg|jpeg|gif|webp|ico)$/);
 
   if (isPublic) {
     return NextResponse.next();
