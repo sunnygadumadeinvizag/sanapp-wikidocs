@@ -1,0 +1,43 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ------------------------------------------------------------------
+// IIPE App1 (Academic ERP) — app1_db
+// Fully independent: its own users (provisioned from SSO identity),
+// its own roles, and its own business data.
+// ------------------------------------------------------------------
+
+enum Role {
+  ADMIN
+  FACULTY
+  STAFF
+  STUDENT
+  VIEWER
+}
+
+model AppUser {
+  id        String   @id @default(uuid())
+  ssoUserId String   @unique // subject from the central SSO
+  username  String   @unique
+  name      String
+  email     String?
+  role      Role     @default(VIEWER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  notices   Notice[]
+}
+
+model Notice {
+  id        String   @id @default(uuid())
+  title     String
+  body      String
+  authorId  String
+  author    AppUser  @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
