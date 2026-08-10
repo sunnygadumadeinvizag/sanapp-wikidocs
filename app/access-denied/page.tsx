@@ -1,4 +1,4 @@
-import { Footer, getPlatformNav, Header, Logo } from "iipe-common-ui";
+import { apiPath, Footer, getPlatformNav, Header, Logo } from "iipe-common-ui";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +28,7 @@ export default function AccessDeniedPage() {
           <div className="iipe-alert">
             Application access is granted centrally in{" "}
             <a href={MAIN_BASE_URL}>IIPE Main</a>. Ask an administrator to grant you access,
-            then <a href="/">try again</a> — you won&apos;t need to sign in again.
+            then <a href={apiPath("/")}>try again</a> — you won&apos;t need to sign in again.
           </div>
           <div className="iipe-form-actions">
             <a className="iipe-btn" href={`${MAIN_BASE_URL}/my-apps`}>
