@@ -12,7 +12,7 @@ export const MAIN_API_KEY = process.env.MAIN_API_KEY!;
 const JWKS = createRemoteJWKSet(new URL(`${SSO_BASE_URL}/api/oidc/jwks`));
 
 export function buildAuthorizeUrl(state: string): URL {
-  const url = new URL("/authorize", SSO_BASE_URL);
+  const url = new URL(SSO_BASE_URL + "/authorize");
   url.searchParams.set("client_id", CLIENT_ID);
   url.searchParams.set("redirect_uri", `${APP_BASE_URL}/auth/callback`);
   url.searchParams.set("response_type", "code");
