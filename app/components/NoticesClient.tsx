@@ -1,4 +1,5 @@
 "use client";
+import { apiPath } from "iipe-common-ui";
 
 import { useState } from "react";
 
@@ -31,7 +32,7 @@ export function NoticesClient({
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch("/api/notices", {
+      const res = await fetch(apiPath("/api/notices"), {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ title, body }),
@@ -52,7 +53,7 @@ export function NoticesClient({
     if (!confirm("Delete this notice?")) return;
     setBusy(true);
     try {
-      const res = await fetch(`/api/notices?id=${id}`, { method: "DELETE" });
+      const res = await fetch(apiPath(`/api/notices?id=${id}`), { method: "DELETE" });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error ?? "Could not delete notice");
