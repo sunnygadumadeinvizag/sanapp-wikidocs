@@ -31,11 +31,7 @@ export default async function DashboardPage({
   const me = await verifyAppSession(session);
   // The proxy does not run for the exact basePath root, so guard it here.
   if (!me) {
-    const state = crypto.randomUUID().replaceAll("-", "");
-    const authorizeUrl = buildAuthorizeUrl(state);
-    store.set("app1_oauth_state", state, { httpOnly: true, sameSite: "lax", path: "/", maxAge: 300 });
-    store.set("app1_return_to", "/", { httpOnly: true, sameSite: "lax", path: "/", maxAge: 600 });
-    redirect(authorizeUrl.toString());
+    redirect(process.env.APP_BASE_URL! + "/api/start-oauth");
   }
 
   if (!me) {
