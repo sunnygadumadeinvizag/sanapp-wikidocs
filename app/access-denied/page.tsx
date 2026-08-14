@@ -11,6 +11,7 @@ export default function AccessDeniedPage() {
   return (
     <>
       <Header
+        appName={APP_NAME}
         navItems={getPlatformNav({
           mainBaseUrl: MAIN_BASE_URL,
           ssoBaseUrl: SSO_BASE_URL,
