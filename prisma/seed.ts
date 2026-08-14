@@ -2,7 +2,7 @@ import "dotenv/config";
 import { prisma } from "../src/lib/prisma";
 
 async function main() {
-  console.log("Seeding app1_db …");
+  console.log("Seeding sanapp_app1_db …");
 
   // Local users keyed by SSO username. The ssoUserId placeholder is replaced
   // with the real SSO subject on the user's first login.
@@ -31,7 +31,7 @@ async function main() {
         data: [
           {
             title: "Welcome to the Academic ERP prototype",
-            body: "This application is fully independent: its own PostgreSQL database (app1_db), its own roles (Admin / Faculty / Staff / Student / Viewer) and its own business logic. Sign-in is handled by the central SSO and application access by IIPE Main.",
+            body: "This application is fully independent: its own PostgreSQL database (sanapp_app1_db), its own roles (Admin / Faculty / Staff / Student / Viewer) and its own business logic. Sign-in is handled by the central SSO and application access by IIPE Main.",
             authorId: sanyasi.id,
           },
           {
@@ -44,7 +44,7 @@ async function main() {
     }
   }
 
-  console.log("app1_db seeded: 6 local users with roles, demo notices");
+  console.log("sanapp_app1_db seeded: 6 local users with roles, demo notices");
 }
 
 main()

@@ -8,7 +8,7 @@ datasource db {
 }
 
 // ------------------------------------------------------------------
-// IIPE App1 (Academic ERP) — app1_db
+// IIPE App1 (Academic ERP) — sanapp_app1_db
 // Fully independent: its own users (provisioned from SSO identity),
 // its own roles, and its own business data.
 // ------------------------------------------------------------------

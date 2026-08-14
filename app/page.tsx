@@ -95,7 +95,7 @@ export default async function DashboardPage({
         { label: "Main (access)", href: MAIN_BASE_URL },
       ]}
     >
-      <SessionGuard channel="iipe-app1-session" />
+      <SessionGuard channel="sanapp-app1-session" />
       <h1 className="iipe-page-title">Academic ERP</h1>
       <p className="iipe-page-sub">
         An independent application. Your identity came from the central SSO, your application
