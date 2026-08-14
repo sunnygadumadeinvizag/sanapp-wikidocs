@@ -52,6 +52,7 @@ const publicOrigin = `${proto}://${host}`;
       name: user.name,
       email: user.email,
       role: localUser.role,
+      ssoRole: user.role ?? "USER",
     });
 
     // Return the user to the page they were on before being sent to the SSO.

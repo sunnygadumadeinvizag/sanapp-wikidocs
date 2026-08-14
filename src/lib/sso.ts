@@ -44,6 +44,8 @@ export async function fetchUserInfo(accessToken: string): Promise<{
   username: string;
   name: string;
   email: string;
+  role?: string | null;
+  primaryRole?: string | null;
 }> {
   const res = await fetch(`${SSO_BASE_URL}/api/oidc/userinfo`, {
     headers: { authorization: `Bearer ${accessToken}` },

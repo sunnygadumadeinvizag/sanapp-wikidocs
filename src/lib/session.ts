@@ -11,6 +11,9 @@ export type AppUserSession = {
   name: string;
   email: string;
   role: string;
+  /** The central SSO role (SUPER_ADMIN | USER) — apps use it for platform-wide
+   *  decisions like showing the Admin Console to the super admin. */
+  ssoRole?: string;
 };
 
 // Session policy (overridable via env in production).
@@ -29,6 +32,7 @@ export async function createAppSession(user: AppUserSession): Promise<string> {
     name: user.name,
     email: user.email,
     role: user.role,
+    ssoRole: user.ssoRole ?? "USER",
   })
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(user.sub)
@@ -49,6 +53,7 @@ export async function verifyAppSessionFull(token: string): Promise<SessionMeta |
         name: String(payload.name ?? ""),
         email: String(payload.email ?? ""),
         role: String(payload.role ?? "VIEWER"),
+        ssoRole: String(payload.ssoRole ?? "USER"),
       },
       exp: payload.exp,
       iat: payload.iat,

@@ -77,6 +77,12 @@ export default async function DashboardPage({
             >
               <a href={`${SSO_BASE_URL}/account`}>My Account</a>
               <a href={`${MAIN_BASE_URL}/my-apps`}>My Apps</a>
+              {me.ssoRole === "SUPER_ADMIN" && (
+                <>
+                  <div className="iipe-dropdown-section">Admin Console</div>
+                  <a href={`${MAIN_BASE_URL}/admin-console`}>Admin Console</a>
+                </>
+              )}
             </UserMenu>
           </>
         ),
