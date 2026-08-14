@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
-import { AppsMenu, getPlatformNav, lookupAppName, PageShell, SessionGuard, UserMenu } from "iipe-common-ui";
+import { AppsMenu, getPlatformNav, lookupAppName, PageShell, SessionGuard, UserMenu } from "sanapp-common-ui";
 import { prisma } from "@/lib/prisma";
 import { verifyAppSession } from "@/lib/session";
 import { buildAuthorizeUrl } from "@/lib/sso";
