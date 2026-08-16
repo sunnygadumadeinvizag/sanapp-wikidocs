@@ -1,134 +1,65 @@
-import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
-import { AppsMenu, getPlatformNav, lookupAppName, PageShell, SessionGuard, UserMenu } from "sanapp-common-ui";
-import { prisma } from "@/lib/prisma";
+import { apiPath } from "sanapp-common-ui";
 import { verifyAppSession } from "@/lib/session";
-import { buildAuthorizeUrl } from "@/lib/sso";
-import { NoticesClient, type NoticeItem } from "./components/NoticesClient";
+import { buildTree, canPublish, getPolicy } from "@/lib/wiki";
+import { WikiShell } from "./components/WikiShell";
+import { SearchBox } from "./components/SearchBox";
 
 export const dynamic = "force-dynamic";
 
-const SSO_BASE_URL = process.env.SSO_BASE_URL ?? "http://localhost:3000";
-const MAIN_BASE_URL = process.env.MAIN_BASE_URL ?? "http://localhost:3001";
-
-const WRITE_ROLES = ["ADMIN", "FACULTY", "STAFF"];
-const ROLE_LABELS: Record<string, string> = {
-  ADMIN: "Admin",
-  FACULTY: "Faculty",
-  STAFF: "Staff",
-  STUDENT: "Student",
-  VIEWER: "Viewer",
-};
-
-export default async function DashboardPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ error?: string }>;
-}) {
-  const appName = await lookupAppName({
-    mainBaseUrl: MAIN_BASE_URL,
-    appKey: process.env.MAIN_API_KEY,
-    basePath: process.env.BASE_PATH ?? "/app1",
-    fallback: "Academic ERP",
-  });
-  const params = await searchParams;
+export default async function HomePage() {
   const store = await cookies();
-  const session = store.get("app1_session")?.value ?? "";
+  const session = store.get("wikidocs_session")?.value ?? "";
   const me = await verifyAppSession(session);
-  // The proxy does not run for the exact basePath root, so guard it here.
-  if (!me) {
-    redirect(process.env.APP_BASE_URL! + "/api/start-oauth");
-  }
-
-  if (!me) {
-    return <p className="iipe-container">Session not found.</p>;
-  }
-
-  const notices = await prisma.notice.findMany({
-    orderBy: { createdAt: "desc" },
-    include: { author: { select: { name: true, role: true } } },
-  });
-
-  const items: NoticeItem[] = notices.map((n) => ({
-    id: n.id,
-    title: n.title,
-    body: n.body,
-    authorName: n.author.name,
-    // Formatted once on the server so client hydration always matches.
-    createdAtLabel: n.createdAt.toLocaleDateString("en-IN"),
-  }));
-
-  const canCreate = WRITE_ROLES.includes(me.role);
-  const canDelete = me.role === "ADMIN";
+  const viewer = me ? { username: me.username, role: me.role, primaryRole: me.primaryRole } : null;
+  const policy = await getPolicy();
+  const mayPublish = canPublish(viewer, policy);
+  const tree = await buildTree(viewer);
 
   return (
-    <PageShell
-      appName={appName}
-      header={{
-        navItems: getPlatformNav({ mainBaseUrl: MAIN_BASE_URL, ssoBaseUrl: SSO_BASE_URL, active: "home" }),
-        right: (
-          <>
-            <AppsMenu launcherHref={`${MAIN_BASE_URL}/my-apps`} />
-            <UserMenu
-              name={me.name}
-              email={me.email}
-              role={ROLE_LABELS[me.role] ?? me.role}
-              signOutHref="/api/logout"
-            >
-              <a href={`${SSO_BASE_URL}/account`}>My Account</a>
-              <a href={`${MAIN_BASE_URL}/my-apps`}>My Apps</a>
-              {me.ssoRole === "SUPER_ADMIN" && (
-                <>
-                  <div className="iipe-dropdown-section">Admin Console</div>
-                  <a href={`${MAIN_BASE_URL}/admin-console`}>Admin Console</a>
-                </>
-              )}
-            </UserMenu>
-          </>
-        ),
-      }}
-      sidebarItems={[
-        { label: "Home", href: "/", active: true },
-        { label: "Notices", href: "/#notices" },
-        { label: "My Account", href: `${SSO_BASE_URL}/account` },
-        { label: "SSO (identity)", href: SSO_BASE_URL },
-        { label: "Main (access)", href: MAIN_BASE_URL },
-      ]}
-    >
-      <SessionGuard channel="sanapp-app1-session" />
-      <h1 className="iipe-page-title">Academic ERP</h1>
+    <WikiShell me={me} active="home">
+      <h1 className="iipe-page-title">Wiki Docs</h1>
       <p className="iipe-page-sub">
-        An independent application. Your identity came from the central SSO, your application
-        access was confirmed by Main, and your <strong>role inside this app</strong> is managed
-        here.
+        Institute documentation — guides, guidelines and knowledge base.
+        {!me && (
+          <>
+            {" "}
+            Some pages are public;{" "}
+            <a href={apiPath("/api/start-oauth")}>sign in</a> for the rest.
+          </>
+        )}
       </p>
 
-      {params.error && (
-        <div className="iipe-alert danger">Sign-in error: {params.error}</div>
+      <div style={{ margin: "1rem 0 1.5rem" }}>
+        <SearchBox />
+      </div>
+
+      {tree.length === 0 ? (
+        <div className="wiki-card">
+          No sections yet. Ask the App Admin to create the first section.
+        </div>
+      ) : (
+        <div style={{ display: "grid", gap: "0.75rem", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))" }}>
+          {tree.map((s: any) => (
+            <a key={s.id} className="wiki-card" href={apiPath(`/docs/${s.slug}`)}>
+              <div style={{ fontWeight: 700, fontSize: "1rem" }}>{s.name}</div>
+              {s.description && <div className="wiki-meta" style={{ marginTop: 4 }}>{s.description}</div>}
+              <div className="wiki-meta" style={{ marginTop: 8 }}>
+                {s.pages.length} page{s.pages.length === 1 ? "" : "s"}
+                {s.children.length > 0 && <> · {s.children.length} sub-section{s.children.length === 1 ? "" : "s"}</>}
+              </div>
+            </a>
+          ))}
+        </div>
       )}
 
-      <div className="iipe-card">
-        <div className="iipe-row">
-          <div>
-            <h2 style={{ margin: 0 }}>{me.name}</h2>
-            <div className="iipe-muted">
-              @{me.username} · {me.email}
-            </div>
-          </div>
-          <span className="iipe-spacer" />
-          <span className="iipe-badge">{ROLE_LABELS[me.role] ?? me.role}</span>
+      {mayPublish && (
+        <div style={{ marginTop: "1.5rem" }}>
+          <a className="iipe-btn" href={apiPath("/pages/new")}>
+            + New Page
+          </a>
         </div>
-        <p className="iipe-muted" style={{ marginBottom: 0 }}>
-          Role determined by App1&apos;s own role model: Admin · Faculty · Staff · Student ·
-          Viewer. {canCreate
-            ? "You can publish notices."
-            : `As ${ROLE_LABELS[me.role] ?? me.role}, you can read notices but not publish them.`}
-        </p>
-      </div>
-
-      <div id="notices">
-        <NoticesClient canCreate={canCreate} canDelete={canDelete} initialNotices={items} />
-      </div>
-    </PageShell>
+      )}
+    </WikiShell>
   );
 }

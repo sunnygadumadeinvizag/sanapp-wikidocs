@@ -8,36 +8,145 @@ datasource db {
 }
 
 // ------------------------------------------------------------------
-// IIPE App1 (Academic ERP) — sanapp_app1_db
+// IIPE Wiki Docs (sanapp-wikidocs) — sanapp_wikidocs_db
 // Fully independent: its own users (provisioned from SSO identity),
-// its own roles, and its own business data.
+// its own sections/wiki tree, publish policy and audit trail.
 // ------------------------------------------------------------------
 
 enum Role {
-  ADMIN
-  FACULTY
-  STAFF
-  STUDENT
-  VIEWER
+  ADMIN // App admin — manages sections, policy, audit; always publishes
+  EDITOR // Can publish where the publish policy allows
+  READER // Can read (per page visibility) but not publish
+}
+
+enum PageVisibility {
+  PUBLIC // readable without any authentication
+  AUTHENTICATED // any signed-in user can read
+  RESTRICTED // only allowed roles / users (or app ADMIN) can read
+}
+
+enum PageStatus {
+  DRAFT
+  PUBLISHED
 }
 
 model AppUser {
-  id        String   @id @default(uuid())
-  ssoUserId String   @unique // subject from the central SSO
-  username  String   @unique
-  name      String
-  email     String?
-  role      Role     @default(VIEWER)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  notices   Notice[]
+  id          String   @id @default(uuid())
+  ssoUserId   String   @unique // subject from the central SSO
+  username    String   @unique
+  name        String
+  email       String?
+  primaryRole String? // from the SSO (STAFF_TEACHING, STAFF_NON_TEACHING, STUDENT, SCHOLAR, GUEST)
+  role        Role     @default(READER)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  pagesCreated WikiPage[]        @relation("PageAuthor")
+  pagesPub     WikiPage[]        @relation("PagePublisher")
+  versions     WikiPageVersion[] @relation("VersionAuthor")
+  sections     WikiSection[]     @relation("SectionCreator")
+  assets       WikiAsset[]
+  policyEdits  PublishPolicy[]
 }
 
-model Notice {
-  id        String   @id @default(uuid())
-  title     String
-  body      String
-  authorId  String
-  author    AppUser  @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
+// A folder in the wiki tree. Sections nest arbitrarily:
+//   docs/itnetwork/vpn/how-to-setup-vpn   (sections: itnetwork > vpn)
+model WikiSection {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String
+  description String?
+  sortOrder   Int      @default(0)
+  parentId    String?
+  parent      WikiSection?  @relation("SectionTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children    WikiSection[] @relation("SectionTree")
+  pages       WikiPage[]
+  createdById String?
+  createdBy   AppUser?      @relation("SectionCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@unique([parentId, slug])
+}
+
+model WikiPage {
+  id               String         @id @default(uuid())
+  sectionId        String
+  section          WikiSection    @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  title            String
+  slug             String
+  visibility       PageVisibility @default(AUTHENTICATED)
+  // RESTRICTED: who may read. App ADMIN always passes.
+  allowedRoles     String[]       @default([]) // SSO primary roles
+  allowedUsers     String[]       @default([]) // usernames
+  status           PageStatus     @default(DRAFT)
+  publishedAt      DateTime?
+  publishedById    String?
+  publishedBy      AppUser?       @relation("PagePublisher", fields: [publishedById], references: [id], onDelete: SetNull)
+  currentVersionId String?             @unique
+  currentVersion   WikiPageVersion?    @relation("CurrentVersion", fields: [currentVersionId], references: [id], onDelete: SetNull)
+  versions         WikiPageVersion[]   @relation("PageVersions")
+  assets           WikiAsset[]
+  createdById      String?
+  createdBy        AppUser?            @relation("PageAuthor", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@unique([sectionId, slug])
+}
+
+// Every save / publish appends a version so the full edit history is kept.
+model WikiPageVersion {
+  id            String   @id @default(uuid())
+  pageId        String
+  page          WikiPage @relation("PageVersions", fields: [pageId], references: [id], onDelete: Cascade)
+  version       Int
+  title         String
+  content       String // markdown
+  changeSummary String?
+  authorId      String?
+  author        AppUser? @relation("VersionAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  createdAt     DateTime @default(now())
+  isPublished   Boolean  @default(false)
+  publishedAt   DateTime?
+  currentOf     WikiPage? @relation("CurrentVersion")
+
+  @@unique([pageId, version])
+}
+
+// Uploaded images / files attached to pages (served via /api/files/...).
+model WikiAsset {
+  id           String   @id @default(uuid())
+  filename     String
+  storedName   String   @unique
+  mime         String
+  size         Int
+  pageId       String?
+  page         WikiPage? @relation(fields: [pageId], references: [id], onDelete: SetNull)
+  uploadedById String?
+  uploadedBy   AppUser? @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime @default(now())
+}
+
+// Who is allowed to publish (App Admin decides): SSO primary roles and/or
+// specific users. Single row, updated by the App Admin.
+model PublishPolicy {
+  id           String    @id @default(uuid())
+  allowedRoles String[]  @default([])
+  allowedUsers String[]  @default([])
+  updatedById  String?
+  updatedBy    AppUser?  @relation(fields: [updatedById], references: [id], onDelete: SetNull)
+  updatedAt    DateTime  @updatedAt
+}
+
+// Immutable audit trail — every meaningful action is recorded.
+model AuditLog {
+  id            String   @id @default(uuid())
+  actorUsername String
+  actorName     String
+  action        String // e.g. PUBLISH_PAGE, SAVE_VERSION, CREATE_SECTION, POLICY_UPDATE
+  targetType    String // PAGE | SECTION | POLICY | ASSET
+  targetId      String?
+  details       Json?
+  createdAt     DateTime @default(now())
 }

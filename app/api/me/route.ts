@@ -4,7 +4,7 @@ import { verifyAppSession } from "@/lib/session";
 
 export async function GET() {
   const store = await cookies();
-  const session = store.get("app1_session")?.value;
+  const session = store.get("wikidocs_session")?.value;
   const user = session ? await verifyAppSession(session) : null;
   if (!user) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });

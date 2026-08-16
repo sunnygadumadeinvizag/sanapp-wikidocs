@@ -12,7 +12,7 @@ const nextConfig: NextConfig = {
     root: MONOREPO_ROOT,
   },
   outputFileTracingRoot: MONOREPO_ROOT,
-  // In production behind Apache this app is served at https://intranet.iipe.ac.in/app1
+  // In production behind Apache this app is served at https://intranet.iipe.ac.in/wikidocs
   basePath: process.env.BASE_PATH || "",
   // Expose the basePath to the proxy (middleware) so it can strip the prefix.
   env: {

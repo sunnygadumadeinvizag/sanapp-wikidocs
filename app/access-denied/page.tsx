@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 const SSO_BASE_URL = process.env.SSO_BASE_URL ?? "http://localhost:3000";
 const MAIN_BASE_URL = process.env.MAIN_BASE_URL ?? "http://localhost:3001";
 
-const APP_NAME = "Academic ERP";
+const APP_NAME = "Wiki Docs";
 
 export default function AccessDeniedPage() {
   return (
@@ -35,7 +35,7 @@ export default function AccessDeniedPage() {
             <a className="iipe-btn" href={`${MAIN_BASE_URL}/my-apps`}>
               Go to My Apps
             </a>
-            <a className="iipe-btn secondary" href="/">
+            <a className="iipe-btn secondary" href={apiPath("/")}>
               Try again
             </a>
             <a className="iipe-btn ghost" href="/api/logout" style={{ color: "var(--iipe-danger)" }}>

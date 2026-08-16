@@ -1,9 +1,9 @@
 import { SignJWT, jwtVerify } from "jose";
 
 const SECRET = new TextEncoder().encode(process.env.APP_SESSION_SECRET!);
-const ISSUER = "sanapp-app1";
+const ISSUER = "sanapp-wikidocs";
 
-export const SESSION_COOKIE = "app1_session";
+export const SESSION_COOKIE = "wikidocs_session";
 
 export type AppUserSession = {
   sub: string;
@@ -11,6 +11,7 @@ export type AppUserSession = {
   name: string;
   email: string;
   role: string;
+  primaryRole: string;
   /** The central SSO role (SUPER_ADMIN | USER) — apps use it for platform-wide
    *  decisions like showing the Admin Console to the super admin. */
   ssoRole?: string;
@@ -32,6 +33,7 @@ export async function createAppSession(user: AppUserSession): Promise<string> {
     name: user.name,
     email: user.email,
     role: user.role,
+    primaryRole: user.primaryRole,
     ssoRole: user.ssoRole ?? "USER",
   })
     .setProtectedHeader({ alg: "HS256" })
@@ -52,7 +54,8 @@ export async function verifyAppSessionFull(token: string): Promise<SessionMeta |
         username: String(payload.username ?? ""),
         name: String(payload.name ?? ""),
         email: String(payload.email ?? ""),
-        role: String(payload.role ?? "VIEWER"),
+        role: String(payload.role ?? "READER"),
+        primaryRole: String(payload.primaryRole ?? ""),
         ssoRole: String(payload.ssoRole ?? "USER"),
       },
       exp: payload.exp,

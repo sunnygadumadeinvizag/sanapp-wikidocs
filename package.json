@@ -1,7 +1,8 @@
 {
-  "name": "sanapp-app1",
-  "version": "0.1.0",
+  "name": "sanapp-wikidocs",
+  "version": "1.0.0",
   "private": true,
+  "description": "IIPE Wiki Docs — section-based documentation wiki with SSO, per-page visibility and publish policy",
   "scripts": {
     "dev": "next dev -p 3002",
     "build": "next build",
@@ -17,10 +18,13 @@
     "@prisma/client": "7.9.1",
     "dotenv": "^17.0.0",
     "jose": "^6.0.11",
+    "lucide-react": "^0.475.0",
     "next": "16.3.0",
     "pg": "^8.16.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
     "sanapp-common-ui": "file:../sanapp-common-ui"
   },
   "devDependencies": {
@@ -31,7 +35,5 @@
     "prisma": "7.9.1",
     "tsx": "^4.20.0",
     "typescript": "^5"
-  },
-  "author": "Sanyasi Naidu Paila",
-  "description": ""
+  }
 }

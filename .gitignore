@@ -42,3 +42,6 @@ next-env.d.ts
 
 # generated prisma client (Prisma 7)
 /src/generated/
+
+# wiki uploads
+/uploads

@@ -4,8 +4,8 @@ import "./globals.css";
 import { ThemeScript } from "sanapp-common-ui";
 
 export const metadata: Metadata = {
-  title: "IIPE Academic ERP",
-  description: "Independent IIPE application #1",
+  title: "IIPE Wiki Docs",
+  description: "Institute documentation wiki — sections, guides and knowledge base",
 };
 
 const SSO_BASE_URL = process.env.SSO_BASE_URL!;

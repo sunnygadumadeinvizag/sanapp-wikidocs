@@ -19,8 +19,8 @@ export async function GET(request: NextRequest) {
   }
   if (!isLocalPath(returnTo)) returnTo = "/";
 
-  // The referer path already carries the base path (/app1, /main ...) — strip
-  // it so APP_BASE_URL + returnTo does not double-prefix.
+  // The referer path already carries the base path (/wikidocs ...) — strip it
+  // so APP_BASE_URL + returnTo does not double-prefix.
   const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || "";
   if (BASE_PATH && (returnTo === BASE_PATH || returnTo.startsWith(BASE_PATH + "/"))) {
     returnTo = returnTo.slice(BASE_PATH.length) || "/";

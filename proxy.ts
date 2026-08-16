@@ -5,22 +5,28 @@ import { buildAuthorizeUrl } from "@/lib/sso";
 export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
-  // Strip the basePath (/sso, /main, /app1...) before matching routes so the
-  // proxy works identically when the app is served behind Apache with a prefix.
+  // Strip the basePath (/wikidocs, ...) before matching routes so the proxy
+  // works identically when the app is served behind Apache with a prefix.
   const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || "";
   const p =
     BASE_PATH && (pathname === BASE_PATH || pathname.startsWith(BASE_PATH + "/"))
       ? pathname.slice(BASE_PATH.length) || "/"
       : pathname;
 
+  // Public wiki browsing: the home page and /docs/... render for everyone —
+  // the page itself enforces per-page visibility (PUBLIC / AUTHENTICATED /
+  // RESTRICTED) and redirects to SSO only when a page needs a signed-in user.
   const isPublic =
+    p === "/" ||
+    p === "/docs" ||
+    p.startsWith("/docs/") ||
     p === "/auth/callback" ||
     p === "/access-denied" ||
     p === "/api" ||
     p.startsWith("/api/") ||
     p.startsWith("/_next") ||
     p.startsWith("/favicon") ||
-    p.match(/\.(svg|png|jpg|jpeg|gif|webp|ico)$/);
+    p.match(/\.(svg|png|jpg|jpeg|gif|webp|ico|md)$/);
 
   if (isPublic) {
     return NextResponse.next();
@@ -33,14 +39,14 @@ export async function proxy(request: NextRequest) {
     const authorizeUrl = buildAuthorizeUrl(state);
 
     const res = NextResponse.redirect(authorizeUrl);
-    res.cookies.set("app1_oauth_state", state, {
+    res.cookies.set("wikidocs_oauth_state", state, {
       httpOnly: true,
       sameSite: "lax",
       path: "/",
       maxAge: 300,
     });
     // Remember where the user was so the callback can send them back.
-    res.cookies.set("app1_return_to", pathname + search, {
+    res.cookies.set("wikidocs_return_to", pathname + search, {
       httpOnly: true,
       sameSite: "lax",
       path: "/",
