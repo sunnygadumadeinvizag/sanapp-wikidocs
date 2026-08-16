@@ -203,6 +203,148 @@ Microsoft 365 is licensed for IIPE staff only.
 Institute subscription — renewed annually by the IT section.`,
   });
 
+  const facilities = await section({ parentId: null, slug: "facilities", name: "Facilities", description: "Facilities Booking documentation and AV equipment guides", sortOrder: 90 });
+
+  await page({
+    sectionId: wifi.id,
+    title: "WiFi Password",
+    slug: "wifi-password",
+    visibility: "AUTHENTICATED",
+    author: sanyasi,
+    content: `# WiFi Password
+
+Campus Wi-Fi uses a shared password for staff and students.
+
+## How to get the password
+
+- Raise a request in **Log Request → IT Network → Wi-Fi**.
+- Visit the IT help desk (Academic Block, Room 201).
+
+The password is changed periodically by the IT section.
+
+> Never share the password outside the institute.`,
+  });
+
+  await page({
+    sectionId: wifi.id,
+    title: "WiFi Connectivity Issues",
+    slug: "wifi-connectivity-issues",
+    visibility: "AUTHENTICATED",
+    author: sanyasi,
+    content: `# WiFi Connectivity Issues
+
+Troubleshoot common Wi-Fi problems step by step.
+
+## 1. No network visible
+
+- Toggle Wi-Fi off and on.
+- Restart your laptop or phone.
+- Move closer to an access point.
+
+## 2. Connected but no internet
+
+- Forget the network and reconnect.
+- Accept the login portal when it opens.
+- Try \`http://1.1.1.1/login\` if the portal does not open.
+
+## 3. Slow or dropping connection
+
+- Move closer to the access point or use a wired connection.
+- Turn off the VPN while on campus Wi-Fi.
+
+## Still stuck?
+
+Raise a request under **IT Network → Wi-Fi** in Log Request — the POC will take it up.`,
+  });
+
+  await page({
+    sectionId: vpn.id,
+    title: "VPN Connection Issues",
+    slug: "vpn-connection-issues",
+    visibility: "AUTHENTICATED",
+    author: sanyasi,
+    content: `# VPN Connection Issues
+
+## Symptom: Client will not connect
+
+- Check your internet connection first.
+- Verify the server address: \`vpn.iipe.ac.in\`.
+- Restart the VPN client.
+
+## Symptom: Authentication failed
+
+- Confirm you are using your IIPE credentials.
+- Reset your password through the SSO if you are locked out.
+
+## Symptom: Connected but no access
+
+- Allow the VPN client through your firewall / antivirus.
+- Try a different protocol (OpenVPN / WireGuard).
+
+## Escalate
+
+Raise a request under **IT Network → VPN** in Log Request.`,
+  });
+
+  await page({
+    sectionId: vpn.id,
+    title: "VPN Troubleshooting",
+    slug: "vpn-troubleshooting",
+    visibility: "AUTHENTICATED",
+    author: sanyasi,
+    content: `# VPN Troubleshooting
+
+## Before you start
+
+- Use the latest client version.
+- Close other VPN software.
+
+## Checklist
+
+1. Internet reachable? \`ping 8.8.8.8\`
+2. VPN server reachable? \`ping vpn.iipe.ac.in\`
+3. DNS — use the institute DNS \`10.10.0.1\`
+
+## Common fixes
+
+| Problem | Fix |
+| --- | --- |
+| Client hangs | Uninstall and reinstall |
+| Error 691 | Wrong credentials — reset your password |
+| Slow speed | Use a wired connection at home |
+
+## Logs
+
+Attach the client log file to your Log Request — it helps the POC diagnose faster.`,
+  });
+
+  await page({
+    sectionId: facilities.id,
+    title: "Booking AV Facilities",
+    slug: "booking-av-facilities",
+    visibility: "AUTHENTICATED",
+    author: sanyasi,
+    content: `# Booking AV Facilities
+
+Seminar halls and classrooms with AV equipment are booked through the **Facilities Booking** app.
+
+## Steps
+
+1. Open Facilities Booking (My Apps → Facilities Booking).
+2. Choose the building → the AV facility (e.g. Seminar Hall with projector).
+3. Select date and time (minimum 15 minutes, maximum 3 hours).
+4. Provide the purpose and attach any document (PDF up to 1 MB).
+5. Confirm — the booking appears instantly.
+
+## Need more than 3 hours?
+
+Long sessions (conferences, workshops) are arranged by the facility POC — contact the admin with the requirement and they will block the slot on your behalf.
+
+## Support
+
+If the AV equipment is not working during your booking, raise a request in Log Request and mention the facility name.`,
+  });
+
   await page({
     sectionId: general.id,
     title: "About the IIPE Intranet",
