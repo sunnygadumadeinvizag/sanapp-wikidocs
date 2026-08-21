@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { verifyAppSession } from "@/lib/session";
-import { canPublish, getPolicy } from "@/lib/wiki";
+import { canPublish, canViewPage, diffLines, getPolicy } from "@/lib/wiki";
 import { audit } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
@@ -18,22 +18,62 @@ export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const v = await viewer();
+  if (!v) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
   const { id } = await params;
+  const page = await prisma.wikiPage.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      visibility: true,
+      allowedRoles: true,
+      allowedUsers: true,
+      status: true,
+    },
+  });
+  if (!page) return NextResponse.json({ error: "not_found" }, { status: 404 });
+
+  // Anyone who may READ the page may see its activity (who changed it);
+  // only the App Admin gets the content of each version and the diffs.
+  if (!canViewPage(page, v)) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  const isAdmin = v.role === "ADMIN";
+
   const versions = await prisma.wikiPageVersion.findMany({
     where: { pageId: id },
     include: { author: { select: { name: true } } },
     orderBy: { version: "desc" },
   });
+
   return NextResponse.json({
-    versions: versions.map((v) => ({
-      id: v.id,
-      version: v.version,
-      title: v.title,
-      changeSummary: v.changeSummary,
-      isPublished: v.isPublished,
-      authorName: v.author?.name ?? "Unknown",
-      createdAtLabel: v.createdAt.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }),
-    })),
+    versions: versions.map((v2, i) => {
+      const prev = isAdmin && i < versions.length - 1 ? versions[i + 1] : null;
+      const diff = prev ? diffLines(prev.content, v2.content) : null;
+      return {
+        id: v2.id,
+        version: v2.version,
+        title: v2.title,
+        changeSummary: v2.changeSummary,
+        isPublished: v2.isPublished,
+        authorName: v2.author?.name ?? "Unknown",
+        createdAtLabel: v2.createdAt.toLocaleDateString("en-IN", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        // Admin-only extras — what exactly changed in this version.
+        ...(isAdmin
+          ? {
+              addedCount: diff?.added.length ?? 0,
+              removedCount: diff?.removed.length ?? 0,
+              addedLines: (diff?.added ?? []).slice(0, 100),
+              removedLines: (diff?.removed ?? []).slice(0, 100),
+            }
+          : {}),
+      };
+    }),
   });
 }
 

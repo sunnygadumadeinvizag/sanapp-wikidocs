@@ -205,3 +205,31 @@ export async function resolvePath(slugs: string[]): Promise<ResolvedTarget> {
   if (!page) return null;
   return { kind: "page", page, sectionSlugs };
 }
+
+/**
+ * Line-level multiset diff between two markdown snapshots.
+ * Returns the lines added to `next` and the lines removed from `prev`
+ * (order-preserving). Used by the per-page activity view — admin only.
+ */
+export function diffLines(prev: string, next: string): { added: string[]; removed: string[] } {
+  const a = prev.split(/\r?\n/);
+  const b = next.split(/\r?\n/);
+  const countA = new Map<string, number>();
+  const countB = new Map<string, number>();
+  for (const l of a) countA.set(l, (countA.get(l) ?? 0) + 1);
+  for (const l of b) countB.set(l, (countB.get(l) ?? 0) + 1);
+
+  const added: string[] = [];
+  const removed: string[] = [];
+  for (const l of b) {
+    const c = countA.get(l) ?? 0;
+    if (c > 0) countA.set(l, c - 1);
+    else added.push(l);
+  }
+  for (const l of a) {
+    const c = countB.get(l) ?? 0;
+    if (c > 0) countB.set(l, c - 1);
+    else removed.push(l);
+  }
+  return { added, removed };
+}

@@ -22,7 +22,16 @@ export async function GET(request: NextRequest) {
   const pages = await prisma.wikiPage.findMany({
     where: {
       sectionId: sectionId || undefined,
-      ...(q ? { OR: [{ title: { contains: q, mode: "insensitive" } }, { slug: { contains: q, mode: "insensitive" } }] } : {}),
+      ...(q
+        ? {
+            OR: [
+              { title: { contains: q, mode: "insensitive" } },
+              { slug: { contains: q, mode: "insensitive" } },
+              // Full-text: match inside the current version's markdown body too.
+              { currentVersion: { content: { contains: q, mode: "insensitive" } } },
+            ],
+          }
+        : {}),
     },
     include: { section: true, currentVersion: true },
     orderBy: { updatedAt: "desc" },
@@ -33,6 +42,13 @@ export async function GET(request: NextRequest) {
   for (const p of pages) {
     if (!canViewPage(p, v)) continue;
     const chain = await sectionChain(p.sectionId);
+    const content = p.currentVersion?.content?.replace(/[#*`>\[\]!-]/g, "") ?? "";
+    // Show a snippet centred on the first match so text hits have context.
+    const idx = q ? content.toLowerCase().indexOf(q) : -1;
+    const excerpt =
+      idx >= 0
+        ? `${idx > 20 ? "…" : ""}${content.slice(Math.max(0, idx - 20), idx + q.length + 120)}…`
+        : content.slice(0, 160);
     visible.push({
       id: p.id,
       title: p.title,
@@ -42,7 +58,7 @@ export async function GET(request: NextRequest) {
       sectionName: p.section.name,
       sectionPath: chain,
       updatedAtLabel: p.updatedAt.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }),
-      excerpt: p.currentVersion?.content?.replace(/[#*`>\[\]!-]/g, "").slice(0, 160) ?? "",
+      excerpt,
     });
   }
   return NextResponse.json({ pages: visible });
