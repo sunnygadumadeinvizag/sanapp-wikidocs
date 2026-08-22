@@ -24,7 +24,7 @@ export async function WikiShell({
   children,
 }: {
   me: AppUserSession | null;
-  active?: "home" | "my-apps" | "applications" | "account";
+  active?: "home" | "my-apps" | "applications" | "account" | "notifications";
   children: ReactNode;
 }) {
   const viewer = me
@@ -45,6 +45,7 @@ export async function WikiShell({
 
   const sidebarItems = [
     { label: "Wiki Home", href: apiPath("/"), active: active === "home" },
+    ...(me ? [{ label: "App Notifications", href: apiPath("/notifications"), active: active === "notifications" }] : []),
     ...(mayPublish ? [{ label: "New Page", href: apiPath("/pages/new") }] : []),
     ...(isAppAdmin
       ? [
