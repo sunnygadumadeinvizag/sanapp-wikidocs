@@ -61,6 +61,7 @@ export async function WikiShell({
     <PageShell
       appName={appName}
       header={{
+        signedOut: !me,
         navItems: getPlatformNav({
           mainBaseUrl: MAIN_BASE_URL,
           ssoBaseUrl: SSO_BASE_URL,
