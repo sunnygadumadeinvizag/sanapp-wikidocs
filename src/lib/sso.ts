@@ -80,3 +80,28 @@ export async function checkAppAccess(user: {
   }
   return res.json();
 }
+
+/**
+ * Ask the SSO (server-to-server, authenticated with this app's OIDC client
+ * credentials) whether the browser's central `sso_session` JWT is still
+ * valid. Used to silently upgrade an anonymous wiki visitor who is already
+ * signed in centrally, instead of showing them a redundant Sign in button.
+ */
+export async function centralSessionValid(ssoSessionJwt: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${SSO_BASE_URL}/api/session/check`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        client_id: CLIENT_ID,
+        client_secret: CLIENT_SECRET,
+        ssoSession: ssoSessionJwt,
+      }),
+    });
+    if (!res.ok) return false;
+    const data = (await res.json()) as { valid?: boolean };
+    return !!data.valid;
+  } catch {
+    return false;
+  }
+}

@@ -75,6 +75,7 @@ export async function GET(request: NextRequest) {
     );
     res.cookies.delete("wikidocs_return_to");
     res.cookies.delete("wikidocs_oauth_state");
+    res.cookies.delete("wikidocs_auto_signin");
     res.cookies.set("wikidocs_session", session, {
       httpOnly: true,
       sameSite: "lax",

@@ -21,5 +21,8 @@ export async function GET(request: NextRequest) {
   const authorizeUrl = buildAuthorizeUrl(state);
   store.set("wikidocs_oauth_state", state, { httpOnly: true, sameSite: "lax", path: "/", maxAge: 300 });
   store.set("wikidocs_return_to", returnTo, { httpOnly: true, sameSite: "lax", path: "/", maxAge: 600 });
+  // Marks that an OAuth round-trip just started. WikiShell uses it as a
+  // cooldown so a failing/denied silent sign-in can't loop the browser.
+  store.set("wikidocs_auto_signin", "1", { httpOnly: true, sameSite: "lax", path: "/", maxAge: 60 });
   return NextResponse.redirect(authorizeUrl);
 }
