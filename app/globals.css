@@ -56,7 +56,9 @@
   background: rgba(128, 128, 128, 0.1);
   border-radius: 8px;
   padding: 0.8rem 1rem;
+  max-width: 100%;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   margin: 0.7rem 0;
 }
 
@@ -74,7 +76,11 @@
 
 .wiki-prose table {
   border-collapse: collapse;
+  display: block;
   width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   margin: 0.7rem 0;
 }
 
@@ -91,6 +97,7 @@
 
 .wiki-prose img {
   max-width: 100%;
+  height: auto;
   border-radius: 8px;
 }
 
@@ -250,14 +257,37 @@
 
 @media (max-width: 900px) {
   .wiki-layout {
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+    width: 100%;
   }
   .wiki-rail {
     position: static;
-    max-height: 300px;
+    width: 100%;
+    max-height: 240px;
     border-right: none;
     border-bottom: 1px solid var(--iipe-border, #e5e7eb);
     padding-right: 0;
-    padding-bottom: 0.5rem;
+    padding-bottom: 0.75rem;
+  }
+  .wiki-main {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  .wiki-card {
+    padding: 0.75rem 0.85rem;
+  }
+  .wiki-prose h1 {
+    font-size: 1.35rem;
+  }
+  .wiki-prose h2 {
+    font-size: 1.15rem;
+  }
+  .wiki-prose h3 {
+    font-size: 1rem;
   }
 }
