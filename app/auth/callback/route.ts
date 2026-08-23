@@ -4,7 +4,9 @@ import { createAppSession } from "@/lib/session";
 import { checkAppAccess, exchangeCode, fetchUserInfo, verifyIdToken } from "@/lib/sso";
 
 export async function GET(request: NextRequest) {
-  const BASE_PATH = "/wikidocs";
+  // From the environment so the callback works both in local dev (no base
+  // path, http://localhost:3002) and behind Apache (/wikidocs).
+  const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || "";
   const proto = request.headers.get("x-forwarded-proto") ?? "http";
   const host = request.headers.get("host") ?? request.nextUrl.host;
   const publicOrigin = `${proto}://${host}`;
@@ -67,11 +69,11 @@ export async function GET(request: NextRequest) {
     const returnTo = request.cookies.get("wikidocs_return_to")?.value ?? "/";
     const safeReturn =
       returnTo.startsWith("/") && !returnTo.startsWith("//") ? returnTo : "/";
+    // Return the user to the wiki page they were on before being sent to the
+    // SSO. The return-to cookie stores the path WITHOUT the base path
+    // (start-oauth strips it), so prefix it back here.
     const res = NextResponse.redirect(
-      new URL(
-        safeReturn.startsWith(BASE_PATH) ? safeReturn : BASE_PATH + safeReturn,
-        publicOrigin
-      )
+      new URL(BASE_PATH + safeReturn, publicOrigin)
     );
     res.cookies.delete("wikidocs_return_to");
     res.cookies.delete("wikidocs_oauth_state");
