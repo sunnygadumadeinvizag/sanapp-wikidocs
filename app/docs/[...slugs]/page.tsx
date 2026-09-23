@@ -5,7 +5,7 @@ import { apiPath } from "sanapp-common-ui";
 import { prisma } from "@/lib/prisma";
 import { verifyAppSession } from "@/lib/session";
 import {
-  canPublish,
+  canPublishInSection,
   canViewPage,
   currentViewer,
   getPolicy,
@@ -39,7 +39,6 @@ export default async function DocsPage({
   const me = await verifyAppSession(session);
   const viewer = await currentViewer();
   const policy = await getPolicy();
-  const mayPublish = canPublish(viewer, policy);
 
   const target = await resolvePath(slugs);
   if (!target) notFound();
@@ -54,6 +53,7 @@ export default async function DocsPage({
     });
     if (!section) notFound();
     const chain = await sectionChain(section.id);
+    const mayPublish = canPublishInSection(viewer, section, policy);
     const visiblePages = section.pages
       .filter((p) => canViewPage(p, viewer) || (p.status === "DRAFT" && viewer?.role === "ADMIN"))
       .sort((a, b) => a.title.localeCompare(b.title));
@@ -154,6 +154,7 @@ export default async function DocsPage({
   const chain = await sectionChain(page.sectionId);
   const content = page.currentVersion?.content ?? "";
   const authorName = page.publishedBy?.name ?? page.createdBy?.name;
+  const mayPublish = canPublishInSection(viewer, page.section, policy);
 
   return (
     <WikiShell me={me} active="home">
