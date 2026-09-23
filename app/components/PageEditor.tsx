@@ -510,6 +510,7 @@ export function PageEditor({
   const taRef = useRef<HTMLTextAreaElement | null>(null);
   const imageRef = useRef<HTMLInputElement>(null);
   const mdRef = useRef<HTMLInputElement>(null);
+  const attachRef = useRef<HTMLInputElement>(null);
   const snippetRef = useRef<HTMLDivElement | null>(null);
   // Set once a brand-new page has been created, so later saves update it
   // instead of creating a second page with the same slug.
@@ -670,12 +671,9 @@ export function PageEditor({
       const isImage = file.type.startsWith("image/");
       const isMd = /\.mdx?$/i.test(file.name) || file.type === "text/markdown";
       const ext = file.name.includes(".") ? (file.name.split(".").pop() ?? "").toLowerCase() : "";
-      // Any textual file (Markdown, txt, code, CSV, config…) can be inserted too.
+      // Textual files merge/fence; everything else (PDF, Office, zip…) is an attachment link.
       const looksTextual = isMd || file.type.startsWith("text/") || TEXT_FILE_RE.test(file.name);
-      if (!isImage && !looksTextual) {
-        setError("Images and text files can be inserted here — that file type isn't supported.");
-        return;
-      }
+      const isAttachment = !isImage && !looksTextual;
       setUploading(true);
       setError(null);
       try {
@@ -691,6 +689,12 @@ export function PageEditor({
         if (isImage) {
           insertBlock(`![${data.asset.filename}](${data.asset.url})`);
           setNotice(`${data.asset.filename} uploaded and embedded in the page.`);
+        } else if (isAttachment) {
+          // PDF / Office / archive — link only; opens from the document click.
+          insertBlock(`[📎 ${data.asset.filename}](${data.asset.url})`);
+          setNotice(
+            `${data.asset.filename} attached — readers open it from this page link only.`
+          );
         } else {
           const textRes = await fetch(apiPath(data.asset.url));
           const text = await textRes.text();
@@ -715,6 +719,7 @@ export function PageEditor({
         setUploading(false);
         if (imageRef.current) imageRef.current.value = "";
         if (mdRef.current) mdRef.current.value = "";
+        if (attachRef.current) attachRef.current.value = "";
       }
     },
     [pageId, title]
@@ -1110,7 +1115,7 @@ export function PageEditor({
             <header className="wiki-ed-panel-head">
               <h2>Page content</h2>
               <p className="wiki-meta">
-                Written in Markdown. Paste or drop an image to upload it, insert any text file, or upload a Markdown file — md/txt merge in, code and CSV go in as fenced blocks.
+                Written in Markdown. Paste or drop an image, attach a PDF or any file, insert a text file, or upload Markdown — md/txt merge in, code and CSV go in as fenced blocks.
               </p>
               <div className="wiki-ed-panel-actions">
                 <button type="button" className="wiki-ed-mini" onClick={() => mdRef.current?.click()}>
@@ -1187,6 +1192,11 @@ export function PageEditor({
                     title="Insert a text file — Markdown/txt merge in, code and CSV become fenced blocks"
                     onClick={() => mdRef.current?.click()}
                   />
+                  <ToolButton
+                    label={uploading ? "Uploading…" : "Attach"}
+                    title="Attach a PDF or any other file — readers open it from the link in this document only"
+                    onClick={() => attachRef.current?.click()}
+                  />
                 </div>
                 <div className="wiki-ed-viewmode" role="group" aria-label="Editor view">
                   {(["write", "split", "preview"] as ViewMode[]).map((m) => (
@@ -1220,6 +1230,12 @@ export function PageEditor({
                 ref={mdRef}
                 type="file"
                 accept=".md,.markdown,.txt,.csv,.tsv,.json,.yaml,.yml,.toml,.ini,.cfg,.conf,.log,.sql,.py,.js,.jsx,.ts,.tsx,.sh,.ps1,.bat,.html,.htm,.css,.scss,.xml,text/*"
+                style={{ display: "none" }}
+                onChange={(e) => void uploadFile(e.target.files?.[0])}
+              />
+              <input
+                ref={attachRef}
+                type="file"
                 style={{ display: "none" }}
                 onChange={(e) => void uploadFile(e.target.files?.[0])}
               />
@@ -1264,7 +1280,7 @@ export function PageEditor({
                     </div>
                   )}
                 </div>
-                {dragging && <div className="wiki-ed-dropnote">Drop an image — or any text file (md, txt, code, CSV…) — to insert it</div>}
+                {dragging && <div className="wiki-ed-dropnote">Drop an image, PDF or any file — or text (md, txt, code, CSV…) — to insert it</div>}
               </div>
 
               {mode === "new" && !content.trim() && (

@@ -6,7 +6,9 @@ import { apiPath } from "sanapp-common-ui";
 
 function basepathHref(href: string | undefined): string | undefined {
   if (!href) return href;
-  if (href.startsWith("/") && !href.startsWith("//") && !href.startsWith("/api/")) {
+  // Root-relative links (including /api/files/…) must carry the basePath so
+  // they resolve under /wikidocs in production. Leave external // and http(s) alone.
+  if (href.startsWith("/") && !href.startsWith("//")) {
     return apiPath(href);
   }
   return href;
