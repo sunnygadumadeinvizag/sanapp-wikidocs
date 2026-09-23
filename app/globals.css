@@ -126,6 +126,74 @@
   padding-right: 0.75rem;
 }
 
+/* --- Tree: expand/collapse controls ------------------------------------- */
+.wiki-tree-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.wiki-tree-head .wiki-tree-root {
+  margin-bottom: 0;
+}
+
+.wiki-tree-actions {
+  display: inline-flex;
+  gap: 0.2rem;
+}
+
+.wiki-tree-act {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  font-size: 0.85rem;
+  line-height: 1;
+  color: var(--iipe-muted, #6b7280);
+  background: transparent;
+  border: 1px solid var(--iipe-border, #e5e7eb);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.wiki-tree-act:hover {
+  color: var(--iipe-primary, #0b5d4f);
+  border-color: var(--iipe-primary, #0b5d4f);
+}
+
+.wiki-tree-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  font-size: 0.8rem;
+  line-height: 1;
+  color: var(--iipe-muted, #6b7280);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.wiki-tree-toggle:hover {
+  color: var(--iipe-primary, #0b5d4f);
+  border-color: var(--iipe-border, #e5e7eb);
+}
+
+.wiki-tree-count {
+  margin-left: auto;
+  font-size: 0.7rem;
+  color: var(--iipe-muted, #6b7280);
+  background: rgba(128, 128, 128, 0.12);
+  border-radius: 8px;
+  padding: 0 0.35rem;
+}
+
 .wiki-tree-root {
   display: block;
   font-weight: 700;

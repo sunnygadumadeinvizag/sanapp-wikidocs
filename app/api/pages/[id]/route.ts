@@ -61,7 +61,7 @@ export async function PATCH(
   }
   const local = await prisma.appUser.findUnique({ where: { username: v.username } });
   const body = await request.json().catch(() => ({}));
-  const { title, content, changeSummary, visibility, allowedRoles, allowedUsers, slug, action } = body as any;
+  const { title, content, changeSummary, visibility, allowedRoles, allowedUsers, slug, sectionId, action } = body as any;
 
   const page = await prisma.wikiPage.findUnique({
     where: { id },
@@ -80,6 +80,21 @@ export async function PATCH(
       return NextResponse.json({ error: "slug_exists" }, { status: 409 });
     }
     nextSlug = candidate;
+  }
+
+  // Pages can be moved to another section from the editor. (sectionId, slug) is
+  // unique, so a move is refused when the target section already uses the slug.
+  let nextSectionId = page.sectionId;
+  if (typeof sectionId === "string" && sectionId.trim() && sectionId !== page.sectionId) {
+    const target = await prisma.wikiSection.findUnique({ where: { id: sectionId } });
+    if (!target) return NextResponse.json({ error: "section_not_found" }, { status: 400 });
+    const clash = await prisma.wikiPage.findUnique({
+      where: { sectionId_slug: { sectionId, slug: nextSlug } },
+    });
+    if (clash && clash.id !== page.id) {
+      return NextResponse.json({ error: "slug_exists" }, { status: 409 });
+    }
+    nextSectionId = sectionId;
   }
 
   const isSave = action === "save" || !action;
@@ -102,6 +117,7 @@ export async function PATCH(
     await prisma.wikiPage.update({
       where: { id: page.id },
       data: {
+        sectionId: nextSectionId,
         title: nextTitle,
         slug: nextSlug,
         visibility: visibility ?? page.visibility,
@@ -119,7 +135,11 @@ export async function PATCH(
       action: isPublish ? "PUBLISH_PAGE" : "SAVE_VERSION",
       targetType: "PAGE",
       targetId: page.id,
-      details: { title: nextTitle, version: (page.currentVersion?.version ?? 0) + 1 },
+      details: {
+        title: nextTitle,
+        version: (page.currentVersion?.version ?? 0) + 1,
+        ...(nextSectionId !== page.sectionId ? { movedFromSectionId: page.sectionId, movedToSectionId: nextSectionId } : {}),
+      },
     });
   } else if (isUnpublish) {
     await prisma.wikiPage.update({

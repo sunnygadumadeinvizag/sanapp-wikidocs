@@ -73,7 +73,8 @@ export async function POST(request: NextRequest) {
   }
   const me = v as { username: string; role: string; primaryRole: string; name?: string };
   const body = await request.json().catch(() => ({}));
-  const { sectionId, title, content = "", visibility = "AUTHENTICATED", allowedRoles = [], allowedUsers = [] } = body as any;
+  const { sectionId, title, slug: slugInput, content = "", visibility = "AUTHENTICATED", allowedRoles = [], allowedUsers = [] } =
+    body as any;
 
   if (!sectionId || !title?.trim()) {
     return NextResponse.json({ error: "sectionId and title are required" }, { status: 400 });
@@ -82,7 +83,8 @@ export async function POST(request: NextRequest) {
   if (!section) return NextResponse.json({ error: "section_not_found" }, { status: 400 });
 
   const local = await prisma.appUser.findUnique({ where: { username: v.username } });
-  const slug = slugify(title);
+  // The editor sends the slug it shows in the form; fall back to the title.
+  const slug = (slugInput?.trim() ? slugify(slugInput) : "") || slugify(title);
   const existing = await prisma.wikiPage.findUnique({
     where: { sectionId_slug: { sectionId, slug } },
   });

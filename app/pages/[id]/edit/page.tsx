@@ -1,8 +1,9 @@
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
+import { apiPath } from "sanapp-common-ui";
 import { prisma } from "@/lib/prisma";
 import { verifyAppSession } from "@/lib/session";
-import { canPublish, currentViewer, getPolicy, listSectionsWithChain } from "@/lib/wiki";
+import { canPublish, currentViewer, getPolicy, listSectionsWithChain, sectionChain } from "@/lib/wiki";
 import { listSsoUsers } from "@/lib/auth";
 import { WikiShell } from "../../../components/WikiShell";
 import { PageEditor } from "../../../components/PageEditor";
@@ -31,23 +32,33 @@ export default async function EditPagePage({
   if (!page) notFound();
 
   const sections = await listSectionsWithChain();
+  const chain = await sectionChain(page.sectionId);
   const ssoUsers = await listSsoUsers();
   const users = ssoUsers
     .filter((u) => u.isActive)
     .map((u) => ({ username: u.username, name: u.name, primaryRole: u.primaryRole }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
+  const docsPath = apiPath(`/docs/${[...chain, page.slug].join("/")}`);
+
   return (
     <WikiShell me={me} active="home">
-      <h1 className="iipe-page-title">Edit Page</h1>
+      <h1 className="iipe-page-title">Edit page</h1>
       <p className="iipe-page-sub">
-        Editing “{page.title}” — saving creates a new version; publishing replaces the public page.
+        {chain.length > 0 && <span className="wiki-meta">{chain.join(" › ")} › </span>}
+        “{page.title}” — every save keeps a version, publishing replaces what readers see.
       </p>
       <PageEditor
         mode="edit"
         pageId={page.id}
         sections={sections}
         users={users}
+        status={page.status}
+        version={page.currentVersion?.version ?? 0}
+        updatedLabel={page.updatedAt.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+        liveHref={docsPath}
+        historyHref={apiPath(`/pages/${page.id}/history`)}
+        sectionPath={chain}
         initial={{
           title: page.title,
           slug: page.slug,
