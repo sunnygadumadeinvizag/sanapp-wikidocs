@@ -2,6 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { apiPath } from "sanapp-common-ui";
+import { PRIMARY_ROLE_LABELS } from "@/lib/labels";
+
+type UserOption = { username: string; name: string; primaryRole: string };
 
 type Section = {
   id: string;
@@ -10,21 +13,12 @@ type Section = {
   description: string | null;
   parentId: string | null;
   sortOrder: number;
+  allowedRoles: string[];
+  allowedUsers: string[];
   _count: { pages: number; children: number };
 };
 
-function slugify(s: string) {
-  return (
-    s
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 60) || ""
-  );
-}
-
-export function AdminSections() {
+export function AdminSections({ users }: { users: UserOption[] }) {
   const [sections, setSections] = useState<Section[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,10 +27,20 @@ export function AdminSections() {
   const [name, setName] = useState("");
   const [parentId, setParentId] = useState("");
   const [description, setDescription] = useState("");
+  const [createRoles, setCreateRoles] = useState<string[]>([]);
+  const [createUsers, setCreateUsers] = useState<string[]>([]);
   const [editing, setEditing] = useState<Section | null>(null);
   const [editName, setEditName] = useState("");
   const [editDesc, setEditDesc] = useState("");
   const [editOrder, setEditOrder] = useState(0);
+  const [editRoles, setEditRoles] = useState<string[]>([]);
+  const [editUsers, setEditUsers] = useState<string[]>([]);
+
+  const roleEntries = useMemo(() => Object.entries(PRIMARY_ROLE_LABELS), []);
+
+  function toggle(list: string[], set: (v: string[]) => void, value: string) {
+    set(list.includes(value) ? list.filter((x) => x !== value) : [...list, value]);
+  }
 
   async function load() {
     try {
@@ -72,16 +76,28 @@ export function AdminSections() {
       const res = await fetch(apiPath("/api/sections"), {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name, parentId: parentId || null, description }),
+        body: JSON.stringify({
+          name,
+          parentId: parentId || null,
+          description,
+          allowedRoles: createRoles,
+          allowedUsers: createUsers,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data?.error === "slug_exists" ? "A section with this name already exists here." : data?.error ?? "Create failed.");
+        setError(
+          data?.error === "slug_exists"
+            ? "A section with this name already exists here."
+            : data?.error ?? "Create failed."
+        );
         return;
       }
       setName("");
       setParentId("");
       setDescription("");
+      setCreateRoles([]);
+      setCreateUsers([]);
       setMessage(`Section “${data.section.name}” created.`);
       load();
     } catch {
@@ -100,7 +116,13 @@ export function AdminSections() {
       const res = await fetch(apiPath(`/api/sections/${editing.id}`), {
         method: "PATCH",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name: editName, description: editDesc, sortOrder: editOrder }),
+        body: JSON.stringify({
+          name: editName,
+          description: editDesc,
+          sortOrder: editOrder,
+          allowedRoles: editRoles,
+          allowedUsers: editUsers,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -142,6 +164,100 @@ export function AdminSections() {
     }
   }
 
+  function PublishRules({
+    idPrefix,
+    roles,
+    setRoles,
+    selectedUsers,
+    setUsers,
+  }: {
+    idPrefix: string;
+    roles: string[];
+    setRoles: (v: string[]) => void;
+    selectedUsers: string[];
+    setUsers: (v: string[]) => void;
+  }) {
+    const [userQuery, setUserQuery] = useState("");
+    const filteredUsers = useMemo(() => {
+      const q = userQuery.trim().toLowerCase();
+      if (!q) return users;
+      return users.filter((u) => `${u.name} ${u.username} ${u.primaryRole}`.toLowerCase().includes(q));
+    }, [userQuery, users]);
+
+    return (
+      <div style={{ display: "grid", gap: "0.75rem", gridColumn: "1 / -1" }}>
+        <div className="space-y-1">
+          <div className="text-sm font-medium">Who can publish pages in this section</div>
+          <p className="wiki-meta">
+            Only these primary roles and/or people (plus App Admin) can create or edit pages here.
+            Leave both empty to follow the global publish policy.
+          </p>
+          <div id={`${idPrefix}-roles`} style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginTop: 4 }}>
+            {roleEntries.map(([value, label]) => (
+              <label key={value} style={{ display: "flex", alignItems: "center", gap: "0.35rem", fontSize: "0.9rem" }}>
+                <input
+                  type="checkbox"
+                  checked={roles.includes(value)}
+                  onChange={() => toggle(roles, setRoles, value)}
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+        </div>
+        <div className="space-y-1">
+          <div className="text-sm font-medium">Specific users who may publish</div>
+          <input
+            className="wiki-search"
+            placeholder="Filter users by name or username…"
+            value={userQuery}
+            onChange={(e) => setUserQuery(e.target.value)}
+          />
+          <div
+            style={{
+              maxHeight: 200,
+              overflowY: "auto",
+              marginTop: 6,
+              display: "flex",
+              flexDirection: "column",
+              gap: "0.15rem",
+            }}
+          >
+            {filteredUsers.map((u) => (
+              <label
+                key={u.username}
+                style={{ display: "flex", alignItems: "center", gap: "0.4rem", fontSize: "0.88rem" }}
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedUsers.includes(u.username)}
+                  onChange={() => toggle(selectedUsers, setUsers, u.username)}
+                />
+                {u.name} ({u.username})
+                {u.primaryRole && <span className="wiki-meta">— {u.primaryRole.replace(/_/g, " ")}</span>}
+              </label>
+            ))}
+            {filteredUsers.length === 0 && <span className="wiki-meta">No users match.</span>}
+          </div>
+          <div className="wiki-meta" style={{ marginTop: 4 }}>
+            Roles: {roles.length} · Users: {selectedUsers.length}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function sectionPath(s: Section): string {
+    const parts: string[] = [];
+    let cur: Section | undefined = s;
+    const byId = new Map(sections.map((x) => [x.id, x]));
+    while (cur) {
+      parts.unshift(cur.slug);
+      cur = cur.parentId ? byId.get(cur.parentId) : undefined;
+    }
+    return parts.join("/");
+  }
+
   function Node({ s, depth }: { s: Section; depth: number }) {
     const kids = childrenOf.get(s.id) ?? [];
     const path = sectionPath(s);
@@ -164,6 +280,12 @@ export function AdminSections() {
           <span className="wiki-meta">
             {s._count.pages} pages · {s._count.children} sub
           </span>
+          <span className="wiki-meta">
+            publish:{" "}
+            {s.allowedRoles.length || s.allowedUsers.length
+              ? `${s.allowedRoles.length} roles, ${s.allowedUsers.length} users`
+              : "global policy"}
+          </span>
           <span style={{ marginLeft: "auto", display: "flex", gap: "0.4rem" }}>
             <button
               type="button"
@@ -174,6 +296,8 @@ export function AdminSections() {
                 setEditName(s.name);
                 setEditDesc(s.description ?? "");
                 setEditOrder(s.sortOrder);
+                setEditRoles(s.allowedRoles ?? []);
+                setEditUsers(s.allowedUsers ?? []);
               }}
             >
               Edit
@@ -196,17 +320,6 @@ export function AdminSections() {
     );
   }
 
-  function sectionPath(s: Section): string {
-    const parts: string[] = [];
-    let cur: Section | undefined = s;
-    const byId = new Map(sections.map((x) => [x.id, x]));
-    while (cur) {
-      parts.unshift(cur.slug);
-      cur = cur.parentId ? byId.get(cur.parentId) : undefined;
-    }
-    return parts.join("/");
-  }
-
   const roots = childrenOf.get(null) ?? [];
 
   return (
@@ -220,7 +333,12 @@ export function AdminSections() {
 
       <form
         onSubmit={create}
-        style={{ display: "grid", gap: "0.6rem", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", alignItems: "end" }}
+        style={{
+          display: "grid",
+          gap: "0.6rem",
+          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+          alignItems: "end",
+        }}
         className="iipe-card"
       >
         <div className="space-y-1">
@@ -245,6 +363,13 @@ export function AdminSections() {
         <button type="submit" className="iipe-btn" disabled={busy || !name.trim()}>
           Add section
         </button>
+        <PublishRules
+          idPrefix="create"
+          roles={createRoles}
+          setRoles={setCreateRoles}
+          selectedUsers={createUsers}
+          setUsers={setCreateUsers}
+        />
       </form>
 
       {editing && (
@@ -252,7 +377,12 @@ export function AdminSections() {
           <div className="text-sm font-medium">Edit “{editing.name}”</div>
           <div style={{ display: "grid", gap: "0.6rem", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
             <input className="wiki-search" value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Name" />
-            <input className="wiki-search" value={editDesc} onChange={(e) => setEditDesc(e.target.value)} placeholder="Description" />
+            <input
+              className="wiki-search"
+              value={editDesc}
+              onChange={(e) => setEditDesc(e.target.value)}
+              placeholder="Description"
+            />
             <input
               className="wiki-search"
               type="number"
@@ -261,6 +391,13 @@ export function AdminSections() {
               placeholder="Sort order"
             />
           </div>
+          <PublishRules
+            idPrefix="edit"
+            roles={editRoles}
+            setRoles={setEditRoles}
+            selectedUsers={editUsers}
+            setUsers={setEditUsers}
+          />
           <div style={{ display: "flex", gap: "0.6rem" }}>
             <button type="button" className="iipe-btn" onClick={saveEdit} disabled={busy}>
               Save

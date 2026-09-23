@@ -57,6 +57,10 @@ model WikiSection {
   slug        String
   description String?
   sortOrder   Int      @default(0)
+  // Who may create/edit pages in this section (SSO primary roles + usernames).
+  // Empty lists → fall back to the global publish policy. App ADMIN always can.
+  allowedRoles     String[] @default([])
+  allowedUsers     String[] @default([])
   parentId    String?
   parent      WikiSection?  @relation("SectionTree", fields: [parentId], references: [id], onDelete: Cascade)
   children    WikiSection[] @relation("SectionTree")

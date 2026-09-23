@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { apiPath } from "sanapp-common-ui";
 import { prisma } from "@/lib/prisma";
 import { verifyAppSession } from "@/lib/session";
-import { canPublish, currentViewer, getPolicy, listSectionsWithChain, sectionChain } from "@/lib/wiki";
+import { canPublishInSection, currentViewer, getPolicy, listSectionsWithChain, sectionChain } from "@/lib/wiki";
 import { listSsoUsers } from "@/lib/auth";
 import { WikiShell } from "../../../components/WikiShell";
 import { PageEditor } from "../../../components/PageEditor";
@@ -21,15 +21,18 @@ export default async function EditPagePage({
   const me = await verifyAppSession(session);
   const viewer = await currentViewer();
   const policy = await getPolicy();
-  if (!me || !canPublish(viewer, policy)) {
+  if (!me) {
     redirect(process.env.APP_BASE_URL! + "/api/start-oauth");
   }
 
   const page = await prisma.wikiPage.findUnique({
     where: { id },
-    include: { currentVersion: true },
+    include: { currentVersion: true, section: true },
   });
   if (!page) notFound();
+  if (!canPublishInSection(viewer, page.section, policy)) {
+    redirect(process.env.APP_BASE_URL! + "/api/start-oauth");
+  }
 
   const sections = await listSectionsWithChain();
   const chain = await sectionChain(page.sectionId);

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { apiPath } from "sanapp-common-ui";
 import { prisma } from "@/lib/prisma";
 import { verifyAppSession } from "@/lib/session";
+import { listSsoUsers } from "@/lib/auth";
 import { WikiShell } from "../../components/WikiShell";
 import { AdminSections } from "../../components/AdminSections";
 
@@ -16,13 +17,20 @@ export default async function AdminSectionsPage() {
   const local = await prisma.appUser.findUnique({ where: { username: me.username } });
   if (local?.role !== "ADMIN") redirect(apiPath("/"));
 
+  const ssoUsers = await listSsoUsers();
+  const users = ssoUsers
+    .filter((u) => u.isActive)
+    .map((u) => ({ username: u.username, name: u.name, primaryRole: u.primaryRole }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
   return (
     <WikiShell me={me} active="home">
       <h1 className="iipe-page-title">Admin Console — Sections</h1>
       <p className="iipe-page-sub">
-        Build the wiki tree. Deleting a section removes its sub-sections and pages too.
+        Build the wiki tree and choose who may publish pages in each section. Deleting a section
+        removes its sub-sections and pages too.
       </p>
-      <AdminSections />
+      <AdminSections users={users} />
     </WikiShell>
   );
 }

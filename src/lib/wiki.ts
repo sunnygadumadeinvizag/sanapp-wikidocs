@@ -54,6 +54,32 @@ export function canPublish(user: { role: string; primaryRole: string; username: 
   return false;
 }
 
+export type SectionPublishRules = { allowedRoles: string[]; allowedUsers: string[] };
+
+/**
+ * May this user create / edit pages in this section?
+ * - App ADMIN always can.
+ * - If the section lists primary roles or users, only those may publish here.
+ * - If the section lists nobody, fall back to the global publish policy.
+ */
+export function canPublishInSection(
+  user: { role: string; primaryRole: string; username: string } | null,
+  section: SectionPublishRules | null | undefined,
+  policy: Policy
+): boolean {
+  if (!user) return false;
+  if (user.role === "ADMIN") return true;
+  const sectionRestricted =
+    !!section && (section.allowedRoles.length > 0 || section.allowedUsers.length > 0);
+  if (sectionRestricted && section) {
+    return (
+      section.allowedRoles.includes(user.primaryRole) ||
+      section.allowedUsers.includes(user.username)
+    );
+  }
+  return canPublish(user, policy);
+}
+
 export function slugify(input: string): string {
   return input
     .toLowerCase()

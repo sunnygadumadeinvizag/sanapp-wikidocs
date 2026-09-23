@@ -29,7 +29,7 @@ export async function PATCH(
   if (!section) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
   const body = await request.json().catch(() => ({}));
-  const { name, description, sortOrder, parentId, slug } = body as any;
+  const { name, description, sortOrder, parentId, slug, allowedRoles, allowedUsers } = body as any;
 
   let nextSlug = section.slug;
   if (slug?.trim() && slug.trim() !== section.slug) {
@@ -54,6 +54,12 @@ export async function PATCH(
       description: description !== undefined ? (description?.trim() || null) : section.description,
       sortOrder: sortOrder !== undefined ? Number(sortOrder) : section.sortOrder,
       parentId: parentId !== undefined ? (parentId || null) : section.parentId,
+      ...(Array.isArray(allowedRoles)
+        ? { allowedRoles: allowedRoles.filter((r: unknown) => typeof r === "string") }
+        : {}),
+      ...(Array.isArray(allowedUsers)
+        ? { allowedUsers: allowedUsers.filter((u: unknown) => typeof u === "string") }
+        : {}),
     },
   });
   await audit({
@@ -62,7 +68,12 @@ export async function PATCH(
     action: "UPDATE_SECTION",
     targetType: "SECTION",
     targetId: id,
-    details: { name: updated.name, slug: updated.slug },
+    details: {
+      name: updated.name,
+      slug: updated.slug,
+      allowedRoles: updated.allowedRoles,
+      allowedUsers: updated.allowedUsers,
+    },
   });
   return NextResponse.json({ section: updated });
 }

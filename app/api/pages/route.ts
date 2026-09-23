@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { verifyAppSession } from "@/lib/session";
-import { canViewPage, canPublish, getPolicy, slugify, sectionChain } from "@/lib/wiki";
+import { canViewPage, canPublishInSection, getPolicy, slugify, sectionChain } from "@/lib/wiki";
 import { audit } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
@@ -68,9 +68,6 @@ export async function POST(request: NextRequest) {
   const v = await viewer();
   if (!v) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const policy = await getPolicy();
-  if (!canPublish(v, policy)) {
-    return NextResponse.json({ error: "not_allowed" }, { status: 403 });
-  }
   const me = v as { username: string; role: string; primaryRole: string; name?: string };
   const body = await request.json().catch(() => ({}));
   const { sectionId, title, slug: slugInput, content = "", visibility = "AUTHENTICATED", allowedRoles = [], allowedUsers = [] } =
@@ -81,6 +78,9 @@ export async function POST(request: NextRequest) {
   }
   const section = await prisma.wikiSection.findUnique({ where: { id: sectionId } });
   if (!section) return NextResponse.json({ error: "section_not_found" }, { status: 400 });
+  if (!canPublishInSection(v, section, policy)) {
+    return NextResponse.json({ error: "not_allowed" }, { status: 403 });
+  }
 
   const local = await prisma.appUser.findUnique({ where: { username: v.username } });
   // The editor sends the slug it shows in the form; fall back to the title.

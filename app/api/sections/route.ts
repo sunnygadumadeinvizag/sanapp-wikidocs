@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
   const a = await admin();
   if (!a) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const body = await request.json().catch(() => ({}));
-  const { name, parentId, description, sortOrder } = body as any;
+  const { name, parentId, description, sortOrder, allowedRoles = [], allowedUsers = [] } = body as any;
   if (!name?.trim()) return NextResponse.json({ error: "name required" }, { status: 400 });
 
   const slug = slugify(name);
@@ -53,6 +53,8 @@ export async function POST(request: NextRequest) {
       description: description?.trim() || null,
       parentId: parentId || null,
       sortOrder: Number(sortOrder ?? 0),
+      allowedRoles: Array.isArray(allowedRoles) ? allowedRoles.filter((r: unknown) => typeof r === "string") : [],
+      allowedUsers: Array.isArray(allowedUsers) ? allowedUsers.filter((u: unknown) => typeof u === "string") : [],
       createdById: a.id,
     },
   });
@@ -62,7 +64,13 @@ export async function POST(request: NextRequest) {
     action: "CREATE_SECTION",
     targetType: "SECTION",
     targetId: section.id,
-    details: { name: section.name, slug: section.slug, parentId: section.parentId },
+    details: {
+      name: section.name,
+      slug: section.slug,
+      parentId: section.parentId,
+      allowedRoles: section.allowedRoles,
+      allowedUsers: section.allowedUsers,
+    },
   });
   return NextResponse.json({ section }, { status: 201 });
 }

@@ -1,7 +1,8 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { verifyAppSession } from "@/lib/session";
-import { canPublish, currentViewer, getPolicy, listSectionsWithChain } from "@/lib/wiki";
+import { canPublishInSection, currentViewer, getPolicy, listSectionsWithChain } from "@/lib/wiki";
+import { prisma } from "@/lib/prisma";
 import { listSsoUsers } from "@/lib/auth";
 import { WikiShell } from "../../components/WikiShell";
 import { PageEditor } from "../../components/PageEditor";
@@ -18,11 +19,18 @@ export default async function NewPagePage({
   const me = await verifyAppSession(session);
   const viewer = await currentViewer();
   const policy = await getPolicy();
-  if (!me || !canPublish(viewer, policy)) {
+  if (!me) {
     redirect(process.env.APP_BASE_URL! + "/api/start-oauth");
   }
   const { section } = await searchParams;
   const sections = await listSectionsWithChain();
+  const targetSection =
+    section && sections.find((s) => s.id === section)
+      ? await prisma.wikiSection.findUnique({ where: { id: section } })
+      : null;
+  if (targetSection && !canPublishInSection(viewer, targetSection, policy)) {
+    redirect(process.env.APP_BASE_URL! + "/api/start-oauth");
+  }
   const ssoUsers = await listSsoUsers();
   const users = ssoUsers
     .filter((u) => u.isActive)
